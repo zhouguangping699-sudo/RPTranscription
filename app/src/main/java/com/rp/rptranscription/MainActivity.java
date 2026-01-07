@@ -6,7 +6,7 @@ import android.text.method.ScrollingMovementMethod;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
-
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -19,6 +19,7 @@ import androidx.core.view.WindowInsetsCompat;
 
 
 import com.rp.rptranscription.utils.VoiceRecognitionAndVadManager;
+import com.rp.rptranscription.ui.LanguageSelectionDialog;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -26,12 +27,16 @@ public class MainActivity extends AppCompatActivity {
 
     private Button recordButton;
     private TextView textView;
+    private TextView targetLanguageValue;
+    private TextView translatedTextView;
     private VoiceRecognitionAndVadManager manager;
 
     private boolean isRunning = false;
     private volatile boolean isBusy = false;
     private final StringBuilder resultBuffer = new StringBuilder();
     private String partialLine = "";
+
+    private String selectedTargetLanguageCode = "en";
 
     private final ExecutorService controlExecutor = Executors.newSingleThreadExecutor();
 
@@ -44,6 +49,14 @@ public class MainActivity extends AppCompatActivity {
         recordButton = findViewById(R.id.record_button);
         textView = findViewById(R.id.my_text);
         textView.setMovementMethod(new ScrollingMovementMethod());
+
+        targetLanguageValue = findViewById(R.id.target_language_value);
+        translatedTextView = findViewById(R.id.translated_text);
+        translatedTextView.setMovementMethod(new ScrollingMovementMethod());
+
+        updateTargetLanguageValue();
+        updateTranslatedSubtitlePlaceholder(selectedTargetLanguageCode);
+        targetLanguageValue.setOnClickListener(v -> showTargetLanguageDialog());
 
         manager = VoiceRecognitionAndVadManager.getInstance(this);
         manager.setRecognitionCallback(new VoiceRecognitionAndVadManager.RecognitionCallback() {
@@ -102,6 +115,42 @@ public class MainActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+    }
+
+    private void showTargetLanguageDialog() {
+        LanguageSelectionDialog dialog = new LanguageSelectionDialog(
+                this,
+                R.raw.nllb_supported_languages,
+                selectedTargetLanguageCode,
+                code -> {
+                    selectedTargetLanguageCode = code;
+                    updateTargetLanguageValue();
+                    updateTranslatedSubtitlePlaceholder(selectedTargetLanguageCode);
+                }
+        );
+        dialog.show();
+    }
+
+    private void updateTargetLanguageValue() {
+        String display = getDisplayNameForCode(selectedTargetLanguageCode);
+        targetLanguageValue.setText(display + " (" + selectedTargetLanguageCode + ")");
+    }
+
+    private void updateTranslatedSubtitlePlaceholder(String targetLanguageCode) {
+        translatedTextView.setText("翻译字幕将在此处显示");
+    }
+
+    private String getDisplayNameForCode(String code) {
+        if (code == null || code.trim().isEmpty()) {
+            return "";
+        }
+        Locale locale = Locale.forLanguageTag(code);
+        String name = locale.getDisplayName(locale);
+        if (name == null || name.trim().isEmpty() || "und".equalsIgnoreCase(locale.getLanguage())) {
+            return code;
+        }
+        String trimmed = name.trim();
+        return trimmed.substring(0, 1).toUpperCase(locale) + trimmed.substring(1);
     }
 
     private void toggleRecognition() {

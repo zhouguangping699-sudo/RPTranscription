@@ -20,7 +20,54 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
+        android:id="@+id/target_language_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="12dp"
+        android:text="翻译目标语言"
+        android:textSize="14sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/record_button" />
+
+    <TextView
+        android:id="@+id/target_language_value"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="16dp"
+        android:ellipsize="end"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:maxLines="1"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:textSize="14sp"
+        android:clickable="true"
+        android:background="?attr/selectableItemBackground"
+        app:layout_constraintBaseline_toBaselineOf="@id/target_language_label"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/target_language_label"
+        tools:text="English (en)" />
+
+    <TextView
         android:id="@+id/my_text"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="16dp"
+        android:scrollbars="vertical"
+        android:textSize="16sp"
+        app:layout_constraintVertical_weight="1"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/target_language_label"
+        app:layout_constraintBottom_toTopOf="@id/translated_text"
+        tools:text="ASR result will appear here..." />
+
+    <TextView
+        android:id="@+id/translated_text"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginStart="16dp"
@@ -29,10 +76,11 @@
         android:layout_marginBottom="16dp"
         android:scrollbars="vertical"
         android:textSize="16sp"
+        app:layout_constraintVertical_weight="1"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/record_button"
-        tools:text="ASR result will appear here..." />
+        app:layout_constraintTop_toBottomOf="@id/my_text"
+        tools:text="Translated subtitles will appear here..." />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
