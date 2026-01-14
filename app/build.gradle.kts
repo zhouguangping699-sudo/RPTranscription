@@ -15,6 +15,24 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        ndk {
+            abiFilters.clear()
+            abiFilters += listOf("arm64-v8a")
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
+    }
+
+    sourceSets {
+        getByName("main") {
+            jniLibs.srcDirs("src/main/jniLibs", "libs")
+        }
     }
 
     buildTypes {
@@ -25,6 +43,20 @@ android {
                 "proguard-rules.pro"
             )
         }
+    }
+
+    packaging {
+        jniLibs {
+            pickFirsts.add("lib/arm64-v8a/libonnxruntime.so")
+        }
+        resources {
+            excludes += listOf("META-INF/*.kotlin_module")
+        }
+    }
+    
+    // Force extraction of native libraries from AAR dependencies
+    androidResources {
+        noCompress += listOf("so")
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -43,6 +75,14 @@ dependencies {
 //    implementation(libs.activity)
     implementation(libs.constraintlayout)
     implementation("androidx.recyclerview:recyclerview:1.3.2")
+    
+    // ONNX Runtime dependencies - keep Java API but native libs will come from jniLibs
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.17.1")
+//    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.19.3")
+    
+    implementation("com.google.guava:guava:33.0.0-android")
+    implementation("com.google.mlkit:language-id:17.0.5")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)

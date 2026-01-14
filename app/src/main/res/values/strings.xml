@@ -3,4 +3,8 @@
 
     <string name="start">开始</string>
     <string name="stop">停止</string>
+
+    <string name="download_models">下载离线翻译模型</string>
+    <string name="downloading_models">正在下载离线翻译模型…</string>
+    <string name="models_ready">离线翻译模型已就绪</string>
 </resources>
