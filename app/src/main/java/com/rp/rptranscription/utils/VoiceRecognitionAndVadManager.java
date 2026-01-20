@@ -323,6 +323,19 @@ public class VoiceRecognitionAndVadManager {
         // 首先设置录音状态为false，让线程自然退出
         isRecording.set(false);
 
+        // 尽早停止录音，避免 AudioRecord.read() 长时间阻塞导致 join 超时
+        synchronized (this) {
+            if (audioRecord != null) {
+                try {
+                    if (audioRecord.getRecordingState() == AudioRecord.RECORDSTATE_RECORDING) {
+                        audioRecord.stop();
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Error stopping audio record early: " + e.getMessage(), e);
+                }
+            }
+        }
+
         stopPartialLoop();
         updateRecognitionPartial("");
 
@@ -449,6 +462,10 @@ public class VoiceRecognitionAndVadManager {
                         // 检查是否有语音输出正在进行，如果有则只读取数据但不处理（清空缓冲区）
                         continue;
                     }
+
+                    if (!isRecording.get()) {
+                        break;
+                    }
                     
                     float[] samples = new float[ret];
                     for (int i = 0; i < ret; i++) {
@@ -460,7 +477,10 @@ public class VoiceRecognitionAndVadManager {
                     // 检查VAD管理器是否有效且样本数组有效
                     if (vadManager != null && vadManager.isInitialized() && samples != null && samples.length > 0) {
                         // 使用VAD管理器处理音频样本
-                        vadManager.processFloatSamples(samples);
+                        try {
+                            vadManager.processFloatSamples(samples);
+                        } catch (java.util.concurrent.RejectedExecutionException ignored) {
+                        }
                     }
                 }
             } catch (Exception e) {

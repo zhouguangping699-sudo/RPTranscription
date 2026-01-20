@@ -115,11 +115,16 @@ public class LanguageSelectionDialog {
 
             int eventType = parser.getEventType();
             boolean inCodeTag = false;
+            boolean inNameTag = false;
+            String currentCode = null;
+            String currentName = null;
 
             while (eventType != XmlPullParser.END_DOCUMENT) {
                 if (eventType == XmlPullParser.START_TAG) {
                     if ("code".equals(parser.getName())) {
                         inCodeTag = true;
+                    } else if ("name".equals(parser.getName())) {
+                        inNameTag = true;
                     }
                 } else if (eventType == XmlPullParser.TEXT) {
                     if (inCodeTag) {
@@ -127,13 +132,32 @@ public class LanguageSelectionDialog {
                         if (code != null) {
                             code = code.trim();
                             if (!code.isEmpty()) {
-                                items.add(new LanguageItem(code, getDisplayNameForCode(code)));
+                                currentCode = code;
+                            }
+                        }
+                    } else if (inNameTag) {
+                        String name = parser.getText();
+                        if (name != null) {
+                            name = name.trim();
+                            if (!name.isEmpty()) {
+                                currentName = name;
                             }
                         }
                     }
                 } else if (eventType == XmlPullParser.END_TAG) {
                     if ("code".equals(parser.getName())) {
                         inCodeTag = false;
+                    } else if ("name".equals(parser.getName())) {
+                        inNameTag = false;
+                    } else if ("language".equals(parser.getName())) {
+                        if (currentCode != null && !currentCode.trim().isEmpty()) {
+                            String displayName = currentName == null || currentName.trim().isEmpty()
+                                    ? getDisplayNameForCode(currentCode)
+                                    : currentName;
+                            items.add(new LanguageItem(currentCode, displayName));
+                        }
+                        currentCode = null;
+                        currentName = null;
                     }
                 }
                 eventType = parser.next();

@@ -23,12 +23,12 @@ public class VadManager {
     private static volatile VadManager instance;
     
     private Context context;
-    private Vad vad;
-    private ExecutorService executorService;
+    private volatile Vad vad;
+    private volatile ExecutorService executorService;
     private List<VadCallback> vadCallbacks = new CopyOnWriteArrayList<>();
     
     // VAD状态标志
-    private boolean isInitialized = false;
+    private volatile boolean isInitialized = false;
     
     // 音频参数
     private final int sampleRateInHz = 16000;
@@ -54,6 +54,20 @@ public class VadManager {
     private VadManager(Context context) {
         this.context = context.getApplicationContext();
         this.executorService = Executors.newSingleThreadExecutor();
+    }
+    
+    private ExecutorService getOrCreateExecutor() {
+        ExecutorService exec = executorService;
+        if (exec != null && !exec.isShutdown() && !exec.isTerminated()) {
+            return exec;
+        }
+        synchronized (this) {
+            exec = executorService;
+            if (exec == null || exec.isShutdown() || exec.isTerminated()) {
+                executorService = Executors.newSingleThreadExecutor();
+            }
+            return executorService;
+        }
     }
     
     /**
@@ -200,78 +214,94 @@ public class VadManager {
         // 创建样本的副本，避免并发修改问题
         float[] samplesCopy = processingSamples.clone();
         
-        executorService.execute(() -> {
-            // 再次检查VAD状态，确保在执行时VAD仍然有效
-            if (!isInitialized || vad == null) {
-                return;
-            }
-            
-            try {
-                // 处理VAD
-                vad.acceptWaveform(samplesCopy);
+        ExecutorService exec = getOrCreateExecutor();
+        if (exec == null || exec.isShutdown() || exec.isTerminated()) {
+            return;
+        }
+        
+        try {
+            exec.execute(() -> {
+                // 再次检查VAD状态，确保在执行时VAD仍然有效
+                if (!isInitialized || vad == null) {
+                    return;
+                }
                 
-                // 处理检测到的语音段
-                while (vad != null && !vad.empty()) {
-                    SpeechSegment segment = vad.front();
-                    if (segment != null && segment.getSamples() != null && segment.getSamples().length > 0) {
-                        // 通知所有注册的回调
-                        for (VadCallback callback : vadCallbacks) {
-                            try {
-                                callback.onVoiceSegmentDetected(segment);
-                            } catch (Exception e) {
-                                Log.e(TAG, "Error in VAD callback: " + e.getMessage(), e);
+                try {
+                    // 处理VAD
+                    vad.acceptWaveform(samplesCopy);
+                    
+                    // 处理检测到的语音段
+                    while (vad != null && !vad.empty()) {
+                        SpeechSegment segment = vad.front();
+                        if (segment != null && segment.getSamples() != null && segment.getSamples().length > 0) {
+                            // 通知所有注册的回调
+                            for (VadCallback callback : vadCallbacks) {
+                                try {
+                                    callback.onVoiceSegmentDetected(segment);
+                                } catch (Exception e) {
+                                    Log.e(TAG, "Error in VAD callback: " + e.getMessage(), e);
+                                }
                             }
                         }
+                        
+                        // 弹出已处理的语音段
+                        vad.pop();
                     }
+                } catch (Exception e) {
+                    Log.e(TAG, "Error processing VAD: " + e.getMessage(), e);
+                    notifyError("Error processing VAD: " + e.getMessage());
                     
-                    // 弹出已处理的语音段
-                    vad.pop();
+                    // 尝试重置VAD
+                    try {
+                        reset();
+                    } catch (Exception resetEx) {
+                        Log.e(TAG, "Failed to reset VAD: " + resetEx.getMessage(), resetEx);
+                    }
                 }
-            } catch (Exception e) {
-                Log.e(TAG, "Error processing VAD: " + e.getMessage(), e);
-                notifyError("Error processing VAD: " + e.getMessage());
-                
-                // 尝试重置VAD
-                try {
-                    reset();
-                } catch (Exception resetEx) {
-                    Log.e(TAG, "Failed to reset VAD: " + resetEx.getMessage(), resetEx);
-                }
-            }
-        });
+            });
+        } catch (java.util.concurrent.RejectedExecutionException ignored) {
+        }
     }
     
     public void flush() {
         if (!isInitialized || vad == null) {
             return;
         }
-
-        executorService.execute(() -> {
-            if (!isInitialized || vad == null) {
-                return;
-            }
-
-            try {
-                vad.flush();
-
-                while (vad != null && !vad.empty()) {
-                    SpeechSegment segment = vad.front();
-                    if (segment != null && segment.getSamples() != null && segment.getSamples().length > 0) {
-                        for (VadCallback callback : vadCallbacks) {
-                            try {
-                                callback.onVoiceSegmentDetected(segment);
-                            } catch (Exception e) {
-                                Log.e(TAG, "Error in VAD callback: " + e.getMessage(), e);
+        
+        ExecutorService exec = getOrCreateExecutor();
+        if (exec == null || exec.isShutdown() || exec.isTerminated()) {
+            return;
+        }
+        
+        try {
+            exec.execute(() -> {
+                if (!isInitialized || vad == null) {
+                    return;
+                }
+                
+                try {
+                    vad.flush();
+                    
+                    while (vad != null && !vad.empty()) {
+                        SpeechSegment segment = vad.front();
+                        if (segment != null && segment.getSamples() != null && segment.getSamples().length > 0) {
+                            for (VadCallback callback : vadCallbacks) {
+                                try {
+                                    callback.onVoiceSegmentDetected(segment);
+                                } catch (Exception e) {
+                                    Log.e(TAG, "Error in VAD callback: " + e.getMessage(), e);
+                                }
                             }
                         }
+                        vad.pop();
                     }
-                    vad.pop();
+                } catch (Exception e) {
+                    Log.e(TAG, "Error flushing VAD: " + e.getMessage(), e);
+                    notifyError("Error flushing VAD: " + e.getMessage());
                 }
-            } catch (Exception e) {
-                Log.e(TAG, "Error flushing VAD: " + e.getMessage(), e);
-                notifyError("Error flushing VAD: " + e.getMessage());
-            }
-        });
+            });
+        } catch (java.util.concurrent.RejectedExecutionException ignored) {
+        }
     }
     
     /**
@@ -317,6 +347,7 @@ public class VadManager {
         if (executorService != null && !executorService.isShutdown()) {
             executorService.shutdown();
         }
+        executorService = null;
     }
     
     /**

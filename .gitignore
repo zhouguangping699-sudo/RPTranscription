@@ -5,3 +5,5 @@ app/src/main/assets/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/
 # IDE 相关配置 (IntelliJ IDEA / Android Studio)
 .idea/
 *.iml
+# Android Studio 的本地编译缓存
+/app/.cxx/

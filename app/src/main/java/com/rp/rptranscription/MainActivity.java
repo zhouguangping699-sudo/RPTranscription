@@ -17,9 +17,11 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-
 import com.rp.rptranscription.utils.VoiceRecognitionAndVadManager;
 import com.rp.rptranscription.ui.LanguageSelectionDialog;
+import com.rp.rptranscription.hymt.HyMtEngine;
+import com.rp.rptranscription.lang.LanguageValidator;
+import com.rp.rptranscription.translation.TextSynchronizer;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -35,8 +37,13 @@ public class MainActivity extends AppCompatActivity {
     private volatile boolean isBusy = false;
     private final StringBuilder resultBuffer = new StringBuilder();
     private String partialLine = "";
+    private final TextSynchronizer synchronizer = new TextSynchronizer();
+    private final StringBuilder translatedBuffer = new StringBuilder();
 
     private String selectedTargetLanguageCode = "en";
+
+    private HyMtEngine hyMtEngine;
+    private final ExecutorService translationExecutor = Executors.newSingleThreadExecutor();
 
     private final ExecutorService controlExecutor = Executors.newSingleThreadExecutor();
 
@@ -58,6 +65,19 @@ public class MainActivity extends AppCompatActivity {
         updateTranslatedSubtitlePlaceholder(selectedTargetLanguageCode);
         targetLanguageValue.setOnClickListener(v -> showTargetLanguageDialog());
 
+        hyMtEngine = new HyMtEngine();
+        int avail = Runtime.getRuntime().availableProcessors();
+        hyMtEngine.setNThreads(Math.max(4, Math.min(avail, 8)));
+        hyMtEngine.setNCtx(512);
+        translationExecutor.execute(() -> {
+            boolean ok = hyMtEngine.init();
+            runOnUiThread(() -> {
+                if (!ok) {
+                    translatedTextView.setText("翻译引擎初始化失败（检查 /data/model/assets/llama/hunyuan-1.8b-q4_0.gguf 是否可读）");
+                }
+            });
+        });
+
         manager = VoiceRecognitionAndVadManager.getInstance(this);
         manager.setRecognitionCallback(new VoiceRecognitionAndVadManager.RecognitionCallback() {
             @Override
@@ -71,10 +91,14 @@ public class MainActivity extends AppCompatActivity {
                 }
                 resultBuffer.append(result);
                 textView.setText(resultBuffer.toString());
+                synchronizer.appendFinalSource(result);
+
+                requestTranslate(result);
             }
 
             @Override
             public void onRecognitionPartial(String partial) {
+
                 if (partial == null) {
                     partial = "";
                 }
@@ -120,7 +144,7 @@ public class MainActivity extends AppCompatActivity {
     private void showTargetLanguageDialog() {
         LanguageSelectionDialog dialog = new LanguageSelectionDialog(
                 this,
-                R.raw.nllb_supported_languages,
+                R.raw.hymt_supported_languages,
                 selectedTargetLanguageCode,
                 code -> {
                     selectedTargetLanguageCode = code;
@@ -154,6 +178,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void toggleRecognition() {
+
         if (!manager.checkPermissions()) {
             ActivityCompat.requestPermissions(
                     this,
@@ -170,6 +195,9 @@ public class MainActivity extends AppCompatActivity {
             resultBuffer.setLength(0);
             partialLine = "";
             textView.setText("");
+            translatedTextView.setText("");
+            translatedBuffer.setLength(0);
+            synchronizer.reset();
 
             isBusy = true;
             recordButton.setEnabled(false);
@@ -219,10 +247,58 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         controlExecutor.shutdownNow();
+        translationExecutor.shutdownNow();
+        if (hyMtEngine != null) {
+            hyMtEngine.release();
+            hyMtEngine = null;
+        }
         if (manager != null) {
             manager.release();
             manager = null;
         }
         super.onDestroy();
+    }
+
+    private void requestTranslate(String text) {
+        String trimmed = text == null ? "" : text.trim();
+        if (trimmed.isEmpty()) {
+            return;
+        }
+        HyMtEngine engine = hyMtEngine;
+        if (engine == null || !engine.isReady()) {
+            return;
+        }
+
+        runOnUiThread(() -> {
+            if (translatedBuffer.length() == 0) {
+                translatedTextView.setText("翻译中... (" + selectedTargetLanguageCode + ")");
+            } else {
+                translatedTextView.setText(translatedBuffer.toString() + "\n翻译中... (" + selectedTargetLanguageCode + ")");
+            }
+        });
+
+        engine.translateAsync(trimmed, selectedTargetLanguageCode, new HyMtEngine.Callback() {
+            @Override
+            public void onResult(String translated) {
+                boolean ok = LanguageValidator.isExpectedLanguage(selectedTargetLanguageCode, translated);
+                String finalText = ok ? translated : "语言不匹配";
+                if (ok) {
+                    synchronizer.appendFinalTranslation(finalText);
+                    if (translatedBuffer.length() > 0) translatedBuffer.append('\n');
+                    translatedBuffer.append(finalText);
+                } else {
+                    if (translatedBuffer.length() > 0) translatedBuffer.append('\n');
+                    translatedBuffer.append(finalText);
+                }
+                runOnUiThread(() -> translatedTextView.setText(translatedBuffer.toString()));
+            }
+
+            @Override
+            public void onError(String message) {
+                if (translatedBuffer.length() > 0) translatedBuffer.append('\n');
+                translatedBuffer.append("翻译失败: ").append(message);
+                runOnUiThread(() -> translatedTextView.setText(translatedBuffer.toString()));
+            }
+        });
     }
 }
