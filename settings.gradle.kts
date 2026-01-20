@@ -21,4 +21,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "RPTranscription"
 include(":app")
+include(":mlkit-translator")
  

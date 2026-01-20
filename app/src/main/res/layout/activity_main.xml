@@ -20,6 +20,37 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
+        android:id="@+id/source_language_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="12dp"
+        android:text="源语言"
+        android:textSize="14sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/record_button" />
+
+    <TextView
+        android:id="@+id/source_language_value"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="16dp"
+        android:ellipsize="end"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:maxLines="1"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:textSize="14sp"
+        android:clickable="true"
+        android:background="?attr/selectableItemBackground"
+        app:layout_constraintBaseline_toBaselineOf="@id/source_language_label"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/source_language_label"
+        tools:text="中文 (zh)" />
+
+    <TextView
         android:id="@+id/target_language_label"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -28,7 +59,7 @@
         android:text="翻译目标语言"
         android:textSize="14sp"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/record_button" />
+        app:layout_constraintTop_toBottomOf="@id/source_language_label" />
 
     <TextView
         android:id="@+id/target_language_value"
@@ -63,8 +94,38 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/target_language_label"
-        app:layout_constraintBottom_toTopOf="@id/translated_text"
+        app:layout_constraintBottom_toTopOf="@id/translation_status"
         tools:text="ASR result will appear here..." />
+
+    <TextView
+        android:id="@+id/translation_status"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="16dp"
+        android:textSize="12sp"
+        android:textColor="#888888"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/my_text"
+        app:layout_constraintBottom_toTopOf="@id/translation_progress"
+        tools:text="" />
+
+    <ProgressBar
+        android:id="@+id/translation_progress"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="0dp"
+        android:layout_height="4dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginEnd="16dp"
+        android:indeterminate="true"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/translation_status"
+        app:layout_constraintBottom_toTopOf="@id/translated_text" />
 
     <TextView
         android:id="@+id/translated_text"
@@ -80,7 +141,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/my_text"
+        app:layout_constraintTop_toBottomOf="@id/translation_progress"
         tools:text="Translated subtitles will appear here..." />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

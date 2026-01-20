@@ -1,0 +1,22 @@
+-- Merging decision tree log ---
+manifest
+ADDED from E:\RPDevelopment\ASR\RPTranscription\mlkit-translator\src\main\AndroidManifest.xml:2:1-6:12
+INJECTED from E:\RPDevelopment\ASR\RPTranscription\mlkit-translator\src\main\AndroidManifest.xml:2:1-6:12
+	package
+		INJECTED from E:\RPDevelopment\ASR\RPTranscription\mlkit-translator\src\main\AndroidManifest.xml
+	xmlns:android
+		ADDED from E:\RPDevelopment\ASR\RPTranscription\mlkit-translator\src\main\AndroidManifest.xml:2:11-69
+uses-permission#android.permission.ACCESS_NETWORK_STATE
+ADDED from E:\RPDevelopment\ASR\RPTranscription\mlkit-translator\src\main\AndroidManifest.xml:4:5-79
+	android:name
+		ADDED from E:\RPDevelopment\ASR\RPTranscription\mlkit-translator\src\main\AndroidManifest.xml:4:22-76
+application
+ADDED from E:\RPDevelopment\ASR\RPTranscription\mlkit-translator\src\main\AndroidManifest.xml:5:5-20
+uses-sdk
+INJECTED from E:\RPDevelopment\ASR\RPTranscription\mlkit-translator\src\main\AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from E:\RPDevelopment\ASR\RPTranscription\mlkit-translator\src\main\AndroidManifest.xml
+INJECTED from E:\RPDevelopment\ASR\RPTranscription\mlkit-translator\src\main\AndroidManifest.xml
+	android:targetSdkVersion
+		INJECTED from E:\RPDevelopment\ASR\RPTranscription\mlkit-translator\src\main\AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from E:\RPDevelopment\ASR\RPTranscription\mlkit-translator\src\main\AndroidManifest.xml

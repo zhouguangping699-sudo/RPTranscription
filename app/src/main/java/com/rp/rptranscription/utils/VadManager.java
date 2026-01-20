@@ -55,6 +55,11 @@ public class VadManager {
         this.context = context.getApplicationContext();
         this.executorService = Executors.newSingleThreadExecutor();
     }
+    private void ensureExecutor() {
+        if (executorService == null || executorService.isShutdown()) {
+            executorService = Executors.newSingleThreadExecutor();
+        }
+    }
     
     /**
      * 获取VAD管理器单例实例
@@ -132,6 +137,7 @@ public class VadManager {
             
             vad = new Vad(context.getAssets(), config);
             isInitialized = true;
+            ensureExecutor();
             Log.i(TAG, "VAD model initialized successfully");
             return true;
         } catch (Exception e) {
@@ -200,6 +206,7 @@ public class VadManager {
         // 创建样本的副本，避免并发修改问题
         float[] samplesCopy = processingSamples.clone();
         
+        ensureExecutor();
         executorService.execute(() -> {
             // 再次检查VAD状态，确保在执行时VAD仍然有效
             if (!isInitialized || vad == null) {
@@ -246,6 +253,7 @@ public class VadManager {
             return;
         }
 
+        ensureExecutor();
         executorService.execute(() -> {
             if (!isInitialized || vad == null) {
                 return;
@@ -314,8 +322,11 @@ public class VadManager {
             }
         }
         
-        if (executorService != null && !executorService.isShutdown()) {
-            executorService.shutdown();
+        if (executorService != null) {
+            try {
+                executorService.shutdownNow();
+            } catch (Exception ignore) {}
+            executorService = null;
         }
     }
     
