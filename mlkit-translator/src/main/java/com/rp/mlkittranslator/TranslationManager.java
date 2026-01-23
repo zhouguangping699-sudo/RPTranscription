@@ -239,6 +239,10 @@ public final class TranslationManager {
         return isOnline;
     }
 
+    public List<String> getSupportedLanguageCodes() {
+        return new ArrayList<>(TranslateLanguage.getAllLanguages());
+    }
+
     private boolean hasInternet(Network n, ConnectivityManager cm) {
         if (n == null) return false;
         try {

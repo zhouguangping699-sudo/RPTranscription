@@ -163,7 +163,7 @@ public class MainActivity extends AppCompatActivity {
     private void showTargetLanguageDialog() {
         LanguageSelectionDialog dialog = new LanguageSelectionDialog(
                 this,
-                R.raw.nllb_supported_languages,
+                translationManager.getSupportedLanguageCodes(),
                 selectedTargetLanguageCode,
                 code -> {
                     selectedTargetLanguageCode = code;
@@ -183,7 +183,7 @@ public class MainActivity extends AppCompatActivity {
     private void showSourceLanguageDialog() {
         LanguageSelectionDialog dialog = new LanguageSelectionDialog(
                 this,
-                R.raw.nllb_supported_languages,
+                translationManager.getSupportedLanguageCodes(),
                 selectedSourceLanguageCode,
                 code -> {
                     selectedSourceLanguageCode = code;

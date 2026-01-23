@@ -18,6 +18,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.rp.rptranscription.R;
+import com.rp.mlkittranslator.TranslationManager;
 
 import org.xmlpull.v1.XmlPullParser;
 
@@ -36,6 +37,7 @@ public class LanguageSelectionDialog {
     private final int rawResId;
     private final String selectedCode;
     private final OnLanguageSelectedListener listener;
+    private final List<String> providedCodes;
 
     private AlertDialog dialog;
 
@@ -44,6 +46,15 @@ public class LanguageSelectionDialog {
         this.rawResId = rawResId;
         this.selectedCode = selectedCode;
         this.listener = listener;
+        this.providedCodes = null;
+    }
+
+    public LanguageSelectionDialog(Activity activity, List<String> codes, String selectedCode, OnLanguageSelectedListener listener) {
+        this.activity = activity;
+        this.rawResId = 0;
+        this.selectedCode = selectedCode;
+        this.listener = listener;
+        this.providedCodes = codes == null ? new ArrayList<>() : new ArrayList<>(codes);
     }
 
     public void show() {
@@ -51,7 +62,9 @@ public class LanguageSelectionDialog {
         EditText searchInput = root.findViewById(R.id.search_input);
         RecyclerView list = root.findViewById(R.id.language_list);
 
-        List<LanguageItem> allLanguages = loadLanguages(activity, rawResId);
+        List<LanguageItem> allLanguages = providedCodes != null
+                ? mapCodesToItems(providedCodes)
+                : loadLanguages(activity, rawResId);
         LanguageListAdapter adapter = new LanguageListAdapter(allLanguages, selectedCode, code -> {
             if (listener != null) {
                 listener.onSelected(code);
@@ -140,6 +153,22 @@ public class LanguageSelectionDialog {
             }
         } catch (Exception ignored) {
         }
+        return items;
+    }
+
+    private static List<LanguageItem> mapCodesToItems(List<String> codes) {
+        List<LanguageItem> items = new ArrayList<>();
+        for (String code : codes) {
+            if (code == null) continue;
+            String c = code.trim();
+            if (c.isEmpty()) continue;
+            items.add(new LanguageItem(c, getDisplayNameForCode(c)));
+        }
+        items.sort((a, b) -> {
+            String na = a == null || a.name == null ? "" : a.name.toLowerCase(Locale.ROOT);
+            String nb = b == null || b.name == null ? "" : b.name.toLowerCase(Locale.ROOT);
+            return na.compareTo(nb);
+        });
         return items;
     }
 
